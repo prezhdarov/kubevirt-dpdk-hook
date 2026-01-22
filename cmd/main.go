@@ -48,6 +48,8 @@ func main() {
 
 	fmt.Println(*domainXML)
 
+	fmt.Println(len(os.Args), os.Args)
+
 	for _, env := range os.Environ() {
 		fmt.Println(env)
 	}
