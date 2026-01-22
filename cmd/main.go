@@ -22,10 +22,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Printf(*vmiJSON)
+	log.Println(*vmiJSON)
 
-	log.Printf(*domainXML)
+	log.Println(*domainXML)
 
-	fmt.Printf(*domainXML)
-
+	fmt.Println(*domainXML)
+	os.Exit(1)
 }
