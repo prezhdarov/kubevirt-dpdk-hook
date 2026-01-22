@@ -17,15 +17,19 @@ func main() {
 	flag.CommandLine.SetOutput(os.Stdout)
 	flag.Parse()
 
-	if *vmiJSON == "" || *domainXML == "" {
-		log.Printf("--vmi and --domain cannot be undefined")
-		os.Exit(1)
-	}
+	//if *vmiJSON == "" || *domainXML == "" {
+	//	log.Printf("--vmi and --domain cannot be undefined")
+	//	os.Exit(1)
+	//}
 
 	log.Println(*vmiJSON)
 
 	log.Println(*domainXML)
 
 	fmt.Println(*domainXML)
+
+	for _, env := range os.Environ() {
+		fmt.Println(env)
+	}
 	os.Exit(1)
 }
