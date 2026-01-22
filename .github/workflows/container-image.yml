@@ -1,0 +1,83 @@
+name: Container Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+    - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+
+  build-latest:
+
+    if: ${{ github.ref == 'refs/heads/master' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}      
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push conatiner images
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        platforms: linux/amd64,linux/arm64
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/kubevirt-dpdk-hook:latest
+          ghcr.io/${{ github.repository_owner }}/kubevirt-dpdk-hook:latest
+
+  build-version:
+
+    if: ${{ github.ref_type == 'tag' }}
+      
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        platforms: linux/amd64,linux/arm64
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/kubevirt-dpdk-hook:${{ github.ref_name }}
+          ghcr.io/${{ github.repository_owner }}/kubevirt-dpdk-hook:${{ github.ref_name }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/kubevirt-dpdk-hook:latest
+          ghcr.io/${{ github.repository_owner }}/kubevirt-dpdk-hook:latest          
