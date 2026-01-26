@@ -1,59 +1,59 @@
 package main
 
-import (
-	"flag"
-	"fmt"
-	"log"
-	"net"
-	"os"
-)
+import "github.com/prezhdarov/kubevirt-dpdk-hook/pkg/hook"
 
-var (
-	vmiJSON   = flag.String("vmi", "", "VMI to change in JSON format")
-	domainXML = flag.String("domain", "", "Domain spec in XML format")
-)
+//var (
+//	vmiJSON   = flag.String("vmi", "", "VMI to change in JSON format")
+//	domainXML = flag.String("domain", "", "Domain spec in XML format")
+//)
 
-func localAddresses() {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		fmt.Print(fmt.Errorf("localAddresses: %+v\n", err.Error()))
-		return
-	}
-
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			fmt.Print(fmt.Errorf("localAddresses: %+v\n", err.Error()))
-		}
-
-		for _, a := range addrs {
-			fmt.Printf("%v - %v\n", i.Name, a)
-		}
-	}
-}
+//func localAddresses() {
+//	ifaces, err := net.Interfaces()
+//	if err != nil {
+//		fmt.Print(fmt.Errorf("localAddresses: %+v\n", err.Error()))
+//		return
+//	}
+//
+//	for _, i := range ifaces {
+//		addrs, err := i.Addrs()
+//		if err != nil {
+//			fmt.Print(fmt.Errorf("localAddresses: %+v\n", err.Error()))
+//		}
+//
+//		for _, a := range addrs {
+//			fmt.Printf("%v - %v\n", i.Name, a)
+//		}
+//	}
+//}
 
 func main() {
 
-	flag.CommandLine.SetOutput(os.Stdout)
-	flag.Parse()
+	var version = "v1alpha2"
+
+	hook.Hook(version)
+
+	//var version = "v1alpha2"
+
+	//flag.CommandLine.SetOutput(os.Stdout)
+	//flag.Parse()
 
 	//if *vmiJSON == "" || *domainXML == "" {
 	//	log.Printf("--vmi and --domain cannot be undefined")
 	//	os.Exit(1)
 	//}
 
-	log.Println(*vmiJSON)
+	//log.Println(*vmiJSON)
 
-	log.Println(*domainXML)
+	//log.Println(*domainXML)
 
-	fmt.Println(*domainXML)
+	//fmt.Println(*domainXML)
 
-	fmt.Println(len(os.Args), os.Args)
+	//fmt.Println(len(os.Args), os.Args)
 
-	for _, env := range os.Environ() {
-		fmt.Println(env)
-	}
+	//for _, env := range os.Environ() {
+	//	fmt.Println(env)
+	//}
 
-	localAddresses()
-	os.Exit(1)
+	//localAddresses()
+	//os.Exit(1)
 }
