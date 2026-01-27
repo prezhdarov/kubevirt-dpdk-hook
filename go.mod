@@ -5,8 +5,10 @@ go 1.25.6
 require (
 	google.golang.org/grpc v1.78.0
 	k8s.io/apimachinery v0.33.5
+	kubevirt.io/api v0.0.0-20251127123821-a94c0a4337ec
 	kubevirt.io/client-go v1.7.0
 	kubevirt.io/kubevirt v1.7.0
+	libvirt.org/go/libvirtxml v1.11000.1
 )
 
 require (
@@ -33,7 +35,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.33.5 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect
-	kubevirt.io/api v0.0.0-20251127123821-a94c0a4337ec // indirect
 	kubevirt.io/containerized-data-importer-api v1.63.1 // indirect
 	kubevirt.io/controller-lifecycle-operator-sdk/api v0.0.0-20220329064328-f3cc58c6ed90 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect

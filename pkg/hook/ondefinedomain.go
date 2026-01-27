@@ -2,10 +2,12 @@ package hook
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 
 	virtv1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
+	"libvirt.org/go/libvirtxml"
 )
 
 func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
@@ -18,8 +20,23 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Failed to unmarshal given VMI spec: %s due %v", vmiJSON, err)
 	}
 
-	log.Log.Infof("vmi json: %s", string(vmiJSON))
-	log.Log.Infof("domain xml: %s", string(domainXML))
+	domainSpec := libvirtxml.Domain{}
+	if err := xml.Unmarshal(domainXML, &domainSpec); err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal given Domain spec: %s %s", err, string(domainXML))
+	}
+
+	annotations := vmiSpec.GetAnnotations()
+
+	for _, iface := range domainSpec.Devices.Interfaces {
+
+		log.Log.Infof("Interface %s of type %s", iface.XMLName.Local, iface.Model.Type)
+
+	}
+
+	//log.Log.Infof("vmi json: %s", string(vmiJSON))
+	//log.Log.Infof("domain xml: %s", string(domainXML))
+
+	log.Log.Infof("VMI annotations", annotations)
 
 	//args := append([]string{},
 	//	"--vmi", string(vmiJSON),
