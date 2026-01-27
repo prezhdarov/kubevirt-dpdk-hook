@@ -15,6 +15,10 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 	//	return nil, fmt.Errorf("Failed in finding %s in $PATH due %v", onDefineDomainBin, err)
 	//}
 
+	log.Log.Infof("vmi json: %s", string(vmiJSON))
+
+	log.Log.Infof("domain xml: %s", string(domainXML))
+
 	vmiSpec := virtv1.VirtualMachineInstance{}
 	if err := json.Unmarshal(vmiJSON, &vmiSpec); err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal given VMI spec: %s due %v", vmiJSON, err)
@@ -28,13 +32,47 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 	annotations := vmiSpec.GetAnnotations()
 
 	for _, iface := range domainSpec.Devices.Interfaces {
+		//if iface.Source.Type == "vhostuser" {
+		//	vhostInterfaces = append(vhostInterfaces, iface)
 
-		log.Log.Infof("Interface %s of type %s", iface.XMLName.Local, iface.Model.Type)
+		fmt.Printf("\n🔗 vHost User Interface Found:\n")
+		//	fmt.Printf("   Socket Path: %s\n", iface.Source.Path)
+		//	fmt.Printf("   Mode: %s\n", iface.Source.Mode)
 
+		if iface.MAC != nil {
+			fmt.Printf("   MAC: %s\n", iface.MAC.Address)
+		}
+
+		if iface.MTU != nil {
+			fmt.Printf("   MTU: %d\n", iface.MTU.Size)
+		}
+
+		if iface.Model != nil {
+			fmt.Printf("   Model: %s\n", iface.Model.Type)
+		}
+
+		if iface.Target != nil {
+			fmt.Printf("   Target: %s (managed: %s\n", iface.Target.Dev, iface.Target.Managed)
+		}
+
+		if iface.Alias != nil {
+			fmt.Printf("   Alias: %s\n", iface.Alias.Name)
+		}
+
+		if iface.Driver != nil {
+			fmt.Printf("   Driver: %s\n", iface.Driver.Name)
+			fmt.Printf("   Queues: %d\n", iface.Driver.Queues)
+		}
+
+		if iface.Address != nil {
+			fmt.Printf("   PCI: %s:%s:%s.%s\n",
+				iface.Address.PCI.Domain,
+				iface.Address.PCI.Bus,
+				iface.Address.PCI.Slot,
+				iface.Address.PCI.Function)
+		}
+		//}
 	}
-
-	//log.Log.Infof("vmi json: %s", string(vmiJSON))
-	//log.Log.Infof("domain xml: %s", string(domainXML))
 
 	log.Log.Infof("VMI annotations", annotations)
 
