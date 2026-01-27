@@ -4,11 +4,28 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"net"
 
 	virtv1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 	"libvirt.org/go/libvirtxml"
 )
+
+func localAddresses() {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		fmt.Print(fmt.Errorf("localAddresses: %+v\n", err.Error()))
+		return
+	}
+
+	for _, i := range ifaces {
+		//addrs, err := i.Addrs()
+		if err != nil {
+			fmt.Print(fmt.Errorf("localAddresses: %+v\n", err.Error()))
+		}
+		log.Log.Infof("%s => %s", i.Name, i.HardwareAddr)
+	}
+}
 
 func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 	//if _, err := exec.LookPath(onDefineDomainBin); err != nil {
@@ -71,6 +88,8 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 				iface.Address.PCI.Slot,
 				iface.Address.PCI.Function)
 		}
+
+		localAddresses()
 		//}
 	}
 
