@@ -70,6 +70,8 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 		newInterfaces = append(newInterfaces, iface)
 	}
 
+	domainSpec.Devices.Interfaces = newInterfaces
+
 	if vmiSpec.Spec.Domain.Memory != nil &&
 		vmiSpec.Spec.Domain.Memory.Hugepages != nil &&
 		vmiSpec.Spec.Domain.Memory.Hugepages.PageSize != "" {
@@ -80,6 +82,7 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 		}
 
 		domainSpec.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpec.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
+		domainSpec.MemoryBacking.MemoryLocked = &libvirtxml.DomainMemoryLocked{}
 	}
 
 	newDomainXML, err := xml.Marshal(domainSpec)
