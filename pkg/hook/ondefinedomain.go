@@ -28,9 +28,8 @@ func localAddresses() {
 }
 
 func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
-	//if _, err := exec.LookPath(onDefineDomainBin); err != nil {
-	//	return nil, fmt.Errorf("Failed in finding %s in $PATH due %v", onDefineDomainBin, err)
-	//}
+
+	var newInterfaces []libvirtxml.DomainInterface
 
 	log.Log.Infof("vmi json: %s", string(vmiJSON))
 
@@ -48,65 +47,47 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 
 	annotations := vmiSpec.GetAnnotations()
 
-	for _, iface := range domainSpec.Devices.Interfaces {
-		//if iface.Source.Type == "vhostuser" {
-		//	vhostInterfaces = append(vhostInterfaces, iface)
-
-		fmt.Printf("\n🔗 vHost User Interface Found:\n")
-		//	fmt.Printf("   Socket Path: %s\n", iface.Source.Path)
-		//	fmt.Printf("   Mode: %s\n", iface.Source.Mode)
-
-		if iface.MAC != nil {
-			fmt.Printf("   MAC: %s\n", iface.MAC.Address)
-		}
-
-		if iface.MTU != nil {
-			fmt.Printf("   MTU: %d\n", iface.MTU.Size)
-		}
-
-		if iface.Model != nil {
-			fmt.Printf("   Model: %s\n", iface.Model.Type)
-		}
-
-		if iface.Target != nil {
-			fmt.Printf("   Target: %s (managed: %s\n", iface.Target.Dev, iface.Target.Managed)
-		}
-
-		if iface.Alias != nil {
-			fmt.Printf("   Alias: %s\n", iface.Alias.Name)
-		}
-
-		if iface.Driver != nil {
-			fmt.Printf("   Driver: %s\n", iface.Driver.Name)
-			fmt.Printf("   Queues: %d\n", iface.Driver.Queues)
-		}
-
-		if iface.Address != nil {
-			fmt.Printf("   PCI: %s:%s:%s.%s\n",
-				iface.Address.PCI.Domain,
-				iface.Address.PCI.Bus,
-				iface.Address.PCI.Slot,
-				iface.Address.PCI.Function)
-		}
-
-		localAddresses()
-		//}
+	log.Log.Info("VMI annotations detected")
+	for annotation, value := range annotations {
+		log.Log.Info(fmt.Sprintf("%s: %s", annotation, value))
+	}
+	// We don't care about the first version of the XML, do we?
+	if havePCIControllers(domainSpec.Devices.Controllers) == false && domainSpec.Devices.Emulator == "" {
+		return domainXML, nil
 	}
 
-	log.Log.Infof("VMI annotations", annotations)
+	for _, iface := range domainSpec.Devices.Interfaces {
 
-	//args := append([]string{},
-	//	"--vmi", string(vmiJSON),
-	//	"--domain", string(domainXML))
+		iface.Source = &libvirtxml.DomainInterfaceSource{
+			VHostUser: &libvirtxml.DomainChardevSource{
+				UNIX: &libvirtxml.DomainChardevSourceUNIX{
+					Path: "/tmp/vhost-user1.sock",
+					Mode: "client", // or "server"
+				},
+			},
+		}
 
-	//log.Log.Infof("Executing %s", onDefineDomainBin)
-	//command := exec.Command(onDefineDomainBin, args...)
-	//if reader, err := command.StderrPipe(); err != nil {
-	//	log.Log.Reason(err).Infof("Could not pipe stderr")
-	//} else {
-	//	go logStderr(reader, "onDefineDomain")
-	//}
-	//return command.Output()
+		newInterfaces = append(newInterfaces, iface)
+	}
 
-	return domainXML, nil
+	if vmiSpec.Spec.Domain.Memory != nil &&
+		vmiSpec.Spec.Domain.Memory.Hugepages != nil &&
+		vmiSpec.Spec.Domain.Memory.Hugepages.PageSize != "" {
+
+		ugePage, err := hugepageFromVMI(vmiSpec.Spec.Domain.Memory.Hugepages.PageSize)
+		if err != nil {
+			return nil, err
+		}
+
+		domainSpec.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpec.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
+	}
+
+	newDomainXML, err := xml.Marshal(domainSpec)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal new Domain spec: %s %+v", err, domainSpec)
+	}
+
+	log.Log.Infof("new domain xml: %s", string(newDomainXML))
+
+	return newDomainXML, nil
 }
