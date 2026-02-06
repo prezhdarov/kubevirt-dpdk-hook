@@ -62,7 +62,7 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 			VHostUser: &libvirtxml.DomainChardevSource{
 				UNIX: &libvirtxml.DomainChardevSourceUNIX{
 					Path: "/tmp/vhost-user1.sock",
-					Mode: "client", // or "server"
+					Mode: "server", // or "server"
 				},
 			},
 		}
