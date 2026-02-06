@@ -39,7 +39,7 @@ jobs:
       with:
         context: .
         push: true
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64 #,linux/arm64
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/kubevirt-dpdk-hook:latest
           ghcr.io/${{ github.repository_owner }}/kubevirt-dpdk-hook:latest

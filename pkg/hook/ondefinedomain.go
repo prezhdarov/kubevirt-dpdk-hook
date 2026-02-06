@@ -69,6 +69,8 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 
 		iface.Target.Managed = "yes"
 
+		iface.MTU = nil
+
 		newInterfaces = append(newInterfaces, iface)
 	}
 
