@@ -86,7 +86,7 @@ func runOnDefineDomain(vmiJSON []byte, domainXML []byte) ([]byte, error) {
 		}
 
 		domainSpec.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpec.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
-		domainSpec.MemoryBacking.MemoryLocked = &libvirtxml.DomainMemoryLocked{}
+		//domainSpec.MemoryBacking.MemoryLocked = &libvirtxml.DomainMemoryLocked{}
 		domainSpec.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: "shared"}
 	}
 
