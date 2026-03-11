@@ -11,10 +11,10 @@ ADD . /build
 WORKDIR /build
 
 RUN go mod download && \
-    go build -a -ldflags '-extldflags "-static"' -o onDefineDomain cmd/main.go
+    go build -a -ldflags '-extldflags "-static"' -o ovs cmd/sidecar/main.go
 
 FROM scratch
 
-COPY --from=builder /build/onDefineDomain /usr/bin/onDefineDomain
+COPY --from=builder /build/ovs /usr/bin/ovs
 
-ENTRYPOINT [ "/usr/bin/onDefineDomain" ]
+ENTRYPOINT [ "/usr/bin/ovs" ]
