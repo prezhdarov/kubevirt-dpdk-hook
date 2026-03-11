@@ -11,7 +11,7 @@ ADD . /build
 WORKDIR /build
 
 RUN go mod download && \
-    go build -a -ldflags '-extldflags "-static"' -o ovs cmd/sidecar/main.go
+    go build -a -ldflags '-extldflags "-static"' -o ovs cmd/main.go
 
 FROM scratch
 
