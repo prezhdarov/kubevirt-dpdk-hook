@@ -10,6 +10,7 @@ import (
 	vmschema "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 
+	"kubevirt.io/kubevirt/pkg/hooks"
 	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
@@ -33,7 +34,7 @@ const (
 
 	OVSSocketDir = "/var/run/kubevirt/vh"
 
-	//OVSVHostUserDirectory = "vhostuser"
+	OVSVHostUserDirectory = "vhostuser"
 )
 
 func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.Network, opts NetworkConfiguratorOptions) (*OVSNetworkConfigurator, error) {
@@ -79,7 +80,8 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*do
 	domainSpecCopy := domainSpec.DeepCopy()
 	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface.Name); iface != nil {
 
-		socketPath := filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", p.vmiSpecIface.Name))
+		socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory, p.vmiSpecIface.Name)
+		//socketPath := filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", p.vmiSpecIface.Name))
 		//	*iface = *generatedIface
 		os.OpenFile(socketPath, os.O_RDONLY|os.O_CREATE, 0666)
 
