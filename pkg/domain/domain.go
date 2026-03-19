@@ -6,19 +6,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	vmschema "kubevirt.io/api/core/v1"
-
-	"kubevirt.io/kubevirt/pkg/hooks"
-	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-
 	"kubevirt.io/client-go/log"
 
-	"kubevirt.io/kubevirt/pkg/network/istio"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/device"
+	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 
-	"kubevirt.io/kubevirt/pkg/network/namescheme"
 	"kubevirt.io/kubevirt/pkg/network/vmispec"
 )
 
@@ -38,7 +31,9 @@ const (
 	// PasstLogFilePath passt log file path Kubevirt consume and record
 	OVSLogFilePath = "/var/run/kubevirt/ovs.log"
 
-	OVSVHostUserDirectory = "vhostuser"
+	OVSSocketDir = "/var/run/kubevirt/vh"
+
+	//OVSVHostUserDirectory = "vhostuser"
 )
 
 func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.Network, opts NetworkConfiguratorOptions) (*OVSNetworkConfigurator, error) {
@@ -65,26 +60,35 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*do
 	//if err != nil {
 	//	return nil, fmt.Errorf("failed to generate domain interface spec: %v", err)
 	//}
-	socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory)
 
-	exists, err := exists(socketPath)
-	if err != nil {
-		log.Log.Warningf("Could not check if directory exists: %s", socketPath)
-	}
+	/*
+		socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory)
 
-	if !exists {
-		if err := os.Mkdir(socketPath, os.ModePerm); err != nil {
-			log.Log.Warningf("Could not create directory: %s", socketPath)
+		exists, err := exists(socketPath)
+		if err != nil {
+			log.Log.Warningf("Could not check if directory exists: %s", socketPath)
 		}
-	}
-	domainSpecCopy := domainSpec.DeepCopy()
-	//if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface.Name); iface != nil {
-	//	*iface = *generatedIface
-	//} else {
-	//	domainSpecCopy.Devices.Interfaces = append(domainSpecCopy.Devices.Interfaces, *generatedIface)
-	//}
 
-	//log.Log.Infof("passt interface is added to domain spec successfully: %+v", generatedIface)
+		if !exists {
+			if err := os.Mkdir(socketPath, os.ModePerm); err != nil {
+				log.Log.Warningf("Could not create directory: %s", socketPath)
+			}
+		}
+	*/
+
+	domainSpecCopy := domainSpec.DeepCopy()
+	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface.Name); iface != nil {
+
+		socketPath := filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", p.vmiSpecIface.Name))
+		//	*iface = *generatedIface
+		os.OpenFile(socketPath, os.O_RDONLY|os.O_CREATE, 0666)
+
+		log.Log.Infof("ovs interface is NOT added to domain spec successfully: %+v", iface)
+	} else {
+		//	domainSpecCopy.Devices.Interfaces = append(domainSpecCopy.Devices.Interfaces, *generatedIface)
+	}
+
+	//
 
 	return domainSpecCopy, nil
 }
@@ -99,101 +103,102 @@ func lookupIfaceByAliasName(ifaces []domainschema.Interface, name string) *domai
 	return nil
 }
 
-func (p OVSNetworkConfigurator) generateInterface() (*domainschema.Interface, error) {
-	var pciAddress *domainschema.Address
-	if p.vmiSpecIface.PciAddress != "" {
-		var err error
-		pciAddress, err = device.NewPciAddressField(p.vmiSpecIface.PciAddress)
-		if err != nil {
-			return nil, err
+/*
+	func (p OVSNetworkConfigurator) generateInterface() (*domainschema.Interface, error) {
+		var pciAddress *domainschema.Address
+		if p.vmiSpecIface.PciAddress != "" {
+			var err error
+			pciAddress, err = device.NewPciAddressField(p.vmiSpecIface.PciAddress)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
 
-	var ifaceModel string
-	if p.vmiSpecIface.Model == "" {
-		ifaceModel = vmschema.VirtIO
-	} else {
-		ifaceModel = p.vmiSpecIface.Model
-	}
-
-	var ifaceModelType string
-	if ifaceModel == vmschema.VirtIO {
-		if p.options.UseVirtioTransitional {
-			ifaceModelType = "virtio-transitional"
+		var ifaceModel string
+		if p.vmiSpecIface.Model == "" {
+			ifaceModel = vmschema.VirtIO
 		} else {
-			ifaceModelType = "virtio-non-transitional"
+			ifaceModel = p.vmiSpecIface.Model
 		}
-	} else {
-		ifaceModelType = p.vmiSpecIface.Model
-	}
-	model := &domainschema.Model{Type: ifaceModelType}
 
-	var mac *domainschema.MAC
-	if p.vmiSpecIface.MacAddress != "" {
-		mac = &domainschema.MAC{MAC: p.vmiSpecIface.MacAddress}
-	}
-
-	var acpi *domainschema.ACPI
-	if p.vmiSpecIface.ACPIIndex > 0 {
-		acpi = &domainschema.ACPI{Index: uint(p.vmiSpecIface.ACPIIndex)}
-	}
-
-	const (
-		ifaceTypeUser     = "user"
-		ifaceBackendPasst = "passt"
-	)
-	return &domainschema.Interface{
-		Alias:       domainschema.NewUserDefinedAlias(p.vmiSpecIface.Name),
-		Model:       model,
-		Address:     pciAddress,
-		MAC:         mac,
-		ACPI:        acpi,
-		Type:        ifaceTypeUser,
-		Source:      domainschema.InterfaceSource{Device: namescheme.PrimaryPodInterfaceName},
-		Backend:     &domainschema.InterfaceBackend{Type: ifaceBackendPasst, LogFile: OVSLogFilePath},
-		PortForward: p.generatePortForward(),
-	}, nil
-}
-
-func (p OVSNetworkConfigurator) generatePortForward() []domainschema.InterfacePortForward {
-	var tcpPortsRange, udpPortsRange []domainschema.InterfacePortForwardRange
-
-	if p.options.IstioProxyInjectionEnabled {
-		for _, port := range istio.ReservedPorts() {
-			tcpPortsRange = append(tcpPortsRange, domainschema.InterfacePortForwardRange{Start: uint(port), Exclude: "yes"})
-		}
-	}
-
-	const (
-		protoTCP = "tcp"
-		protoUDP = "udp"
-	)
-
-	for _, port := range p.vmiSpecIface.Ports {
-		if strings.EqualFold(port.Protocol, protoTCP) || port.Protocol == "" {
-			tcpPortsRange = append(tcpPortsRange, domainschema.InterfacePortForwardRange{Start: uint(port.Port)})
-		} else if strings.EqualFold(port.Protocol, protoUDP) {
-			udpPortsRange = append(udpPortsRange, domainschema.InterfacePortForwardRange{Start: uint(port.Port)})
+		var ifaceModelType string
+		if ifaceModel == vmschema.VirtIO {
+			if p.options.UseVirtioTransitional {
+				ifaceModelType = "virtio-transitional"
+			} else {
+				ifaceModelType = "virtio-non-transitional"
+			}
 		} else {
-			log.Log.Errorf("protocol %s is not supported by passt", port.Protocol)
+			ifaceModelType = p.vmiSpecIface.Model
 		}
+		model := &domainschema.Model{Type: ifaceModelType}
+
+		var mac *domainschema.MAC
+		if p.vmiSpecIface.MacAddress != "" {
+			mac = &domainschema.MAC{MAC: p.vmiSpecIface.MacAddress}
+		}
+
+		var acpi *domainschema.ACPI
+		if p.vmiSpecIface.ACPIIndex > 0 {
+			acpi = &domainschema.ACPI{Index: uint(p.vmiSpecIface.ACPIIndex)}
+		}
+
+		const (
+			ifaceTypeUser     = "user"
+			ifaceBackendPasst = "passt"
+		)
+		return &domainschema.Interface{
+			Alias:       domainschema.NewUserDefinedAlias(p.vmiSpecIface.Name),
+			Model:       model,
+			Address:     pciAddress,
+			MAC:         mac,
+			ACPI:        acpi,
+			Type:        ifaceTypeUser,
+			Source:      domainschema.InterfaceSource{Device: namescheme.PrimaryPodInterfaceName},
+			Backend:     &domainschema.InterfaceBackend{Type: ifaceBackendPasst, LogFile: OVSLogFilePath},
+			PortForward: p.generatePortForward(),
+		}, nil
 	}
 
-	var portsFwd []domainschema.InterfacePortForward
-	if len(udpPortsRange) == 0 && len(tcpPortsRange) == 0 {
-		portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoTCP})
-		portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoUDP})
-	}
-	if len(tcpPortsRange) > 0 {
-		portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoTCP, Ranges: tcpPortsRange})
-	}
-	if len(udpPortsRange) > 0 {
-		portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoUDP, Ranges: udpPortsRange})
-	}
+	func (p OVSNetworkConfigurator) generatePortForward() []domainschema.InterfacePortForward {
+		var tcpPortsRange, udpPortsRange []domainschema.InterfacePortForwardRange
 
-	return portsFwd
-}
+		if p.options.IstioProxyInjectionEnabled {
+			for _, port := range istio.ReservedPorts() {
+				tcpPortsRange = append(tcpPortsRange, domainschema.InterfacePortForwardRange{Start: uint(port), Exclude: "yes"})
+			}
+		}
 
+		const (
+			protoTCP = "tcp"
+			protoUDP = "udp"
+		)
+
+		for _, port := range p.vmiSpecIface.Ports {
+			if strings.EqualFold(port.Protocol, protoTCP) || port.Protocol == "" {
+				tcpPortsRange = append(tcpPortsRange, domainschema.InterfacePortForwardRange{Start: uint(port.Port)})
+			} else if strings.EqualFold(port.Protocol, protoUDP) {
+				udpPortsRange = append(udpPortsRange, domainschema.InterfacePortForwardRange{Start: uint(port.Port)})
+			} else {
+				log.Log.Errorf("protocol %s is not supported by passt", port.Protocol)
+			}
+		}
+
+		var portsFwd []domainschema.InterfacePortForward
+		if len(udpPortsRange) == 0 && len(tcpPortsRange) == 0 {
+			portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoTCP})
+			portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoUDP})
+		}
+		if len(tcpPortsRange) > 0 {
+			portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoTCP, Ranges: tcpPortsRange})
+		}
+		if len(udpPortsRange) > 0 {
+			portsFwd = append(portsFwd, domainschema.InterfacePortForward{Proto: protoUDP, Ranges: udpPortsRange})
+		}
+
+		return portsFwd
+	}
+*/
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
