@@ -80,9 +80,22 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*do
 	domainSpecCopy := domainSpec.DeepCopy()
 	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface.Name); iface != nil {
 
-		socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory, p.vmiSpecIface.Name)
+		filePath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory)
 		//socketPath := filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", p.vmiSpecIface.Name))
 		//	*iface = *generatedIface
+
+		exists, err := exists(filePath)
+		if err != nil {
+			log.Log.Warningf("Could not check if directory exists: %s", filePath)
+		}
+
+		if !exists {
+			if err := os.Mkdir(filePath, os.ModePerm); err != nil {
+				log.Log.Warningf("Could not create directory: %s", filePath)
+			}
+		}
+
+		socketPath := filepath.Join(filePath, p.vmiSpecIface.Name)
 		os.OpenFile(socketPath, os.O_RDONLY|os.O_CREATE, 0666)
 
 		log.Log.Infof("ovs interface is NOT added to domain spec successfully: %+v", iface)
