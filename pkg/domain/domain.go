@@ -40,7 +40,7 @@ const (
 func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.Network, opts NetworkConfiguratorOptions) (*OVSNetworkConfigurator, error) {
 	network := vmispec.LookupPodNetwork(networks)
 	if network == nil {
-		return nil, fmt.Errorf("pod network not found: %+v", networks)
+		return nil, fmt.Errorf("pod network not found: %+v", networks[0].Multus)
 	}
 	iface := vmispec.LookupInterfaceByName(ifaces, network.Name)
 	if iface == nil {
