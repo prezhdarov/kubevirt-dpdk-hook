@@ -12,8 +12,6 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/hooks"
 	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
-
-	"kubevirt.io/kubevirt/pkg/network/vmispec"
 )
 
 type NetworkConfiguratorOptions struct {
@@ -22,7 +20,7 @@ type NetworkConfiguratorOptions struct {
 }
 
 type OVSNetworkConfigurator struct {
-	vmiSpecIface *vmschema.Interface
+	vmiSpecIface []*vmschema.Interface
 	options      NetworkConfiguratorOptions
 }
 
@@ -38,20 +36,28 @@ const (
 )
 
 func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.Network, opts NetworkConfiguratorOptions) (*OVSNetworkConfigurator, error) {
-	network := vmispec.LookupPodNetwork(networks)
-	if network == nil {
-		return nil, fmt.Errorf("pod network not found: %d, %s, %+v", len(networks), networks[0].Name, networks[0].Multus)
-	}
-	iface := vmispec.LookupInterfaceByName(ifaces, network.Name)
-	if iface == nil {
-		return nil, fmt.Errorf("no interface found")
-	}
-	if iface.Binding == nil || iface.Binding != nil && iface.Binding.Name != OVSPluginName {
-		return nil, fmt.Errorf("interface %q is not set with Passt network binding plugin", network.Name)
-	}
+	/*
+		network := vmispec.LookupPodNetwork(networks)
+		if network == nil {
+			return nil, fmt.Errorf("pod network not found: %d, %s, %+v", len(networks), networks[0].Name, networks[0].Multus)
+		}
+		iface := vmispec.LookupInterfaceByName(ifaces, network.Name)
+		if iface == nil {
+			return nil, fmt.Errorf("no interface found")
+		}
+	*/
 
+	var newIfaces []*vmschema.Interface
+
+	for _, iface := range ifaces {
+		if iface.Binding == nil || iface.Binding != nil && iface.Binding.Name != OVSPluginName {
+			return nil, fmt.Errorf("interface %q is not set with ovs network binding plugin", iface.Name)
+		}
+		newIfaces = append(newIfaces, &iface)
+
+	}
 	return &OVSNetworkConfigurator{
-		vmiSpecIface: iface,
+		vmiSpecIface: newIfaces,
 		options:      opts,
 	}, nil
 }
@@ -78,7 +84,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*do
 	*/
 
 	domainSpecCopy := domainSpec.DeepCopy()
-	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface.Name); iface != nil {
+	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface[0].Name); iface != nil {
 
 		filePath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory)
 		//socketPath := filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", p.vmiSpecIface.Name))
@@ -95,7 +101,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*do
 			}
 		}
 
-		socketPath := filepath.Join(filePath, p.vmiSpecIface.Name)
+		socketPath := filepath.Join(filePath, p.vmiSpecIface[0].Name)
 		os.OpenFile(socketPath, os.O_RDONLY|os.O_CREATE, 0666)
 
 		log.Log.Infof("ovs interface is NOT added to domain spec successfully: %+v", iface)
