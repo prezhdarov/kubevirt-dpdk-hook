@@ -19,6 +19,7 @@ import (
 const hookSocket = "ovs.sock"
 
 func main() {
+	log.InitializeLogging("ovs-plugin")
 	socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, hookSocket)
 	socket, err := net.Listen("unix", socketPath)
 	if err != nil {
