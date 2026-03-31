@@ -11,7 +11,7 @@ import (
 const libvirtDomainQemuSchema = "http://libvirt.org/schemas/domain/qemu/1.0"
 
 type DomainSpecMutator interface {
-	Mutate(*libvirtxml.Domain) (*libvirtxml.Domain, error)
+	Mutate(*libvirtxml.Domain) error
 }
 
 func OnDefineDomain(domainXML []byte, domSpecMutator DomainSpecMutator) ([]byte, error) {
@@ -28,12 +28,12 @@ func OnDefineDomain(domainXML []byte, domSpecMutator DomainSpecMutator) ([]byte,
 		return nil, fmt.Errorf("failed to unmarshal given domain spec: %v", err)
 	}
 
-	updatedDomainSpec, err := domSpecMutator.Mutate(domainSpec)
+	err := domSpecMutator.Mutate(domainSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	updatedDomainSpecXML, err := xml.Marshal(updatedDomainSpec)
+	updatedDomainSpecXML, err := xml.Marshal(domainSpec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal updated domain spec: %v", err)
 	}

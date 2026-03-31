@@ -62,17 +62,17 @@ func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.
 	}, nil
 }
 
-func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtxml.Domain, error) {
+func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 	const (
 		sharedMemoryBackingAccessMode = "shared"
 		memfdMemoryBackingSourceType  = "memfd"
 	)
 
-	domainSpecCopy := *domainSpec
+	//domainSpecCopy := *domainSpec
 
 	// Set memory access mode to shared
-	domainSpecCopy.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: sharedMemoryBackingAccessMode}
-	domainSpecCopy.MemoryBacking.MemorySource = &libvirtxml.DomainMemorySource{Type: memfdMemoryBackingSourceType}
+	domainSpec.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: sharedMemoryBackingAccessMode}
+	domainSpec.MemoryBacking.MemorySource = &libvirtxml.DomainMemorySource{Type: memfdMemoryBackingSourceType}
 
 	log.Log.Infof("Set memory access to %s and memory source to %s", sharedMemoryBackingAccessMode, memfdMemoryBackingSourceType)
 
@@ -98,24 +98,24 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 
 		ugePage, err := hugepageFromVMI(p.hugePageSize)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		if len(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages) < 1 {
+		if len(domainSpec.MemoryBacking.MemoryHugePages.Hugepages) < 1 {
 			log.Log.Infof("No hugepages configruration find, adding one with page size of %s", p.hugePageSize)
-			domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
+			domainSpec.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpec.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
 		} else {
 			log.Log.Infof("Existing hugepages configruration found, updating to page size of %s", p.hugePageSize)
-			domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages[0] = ugePage
+			domainSpec.MemoryBacking.MemoryHugePages.Hugepages[0] = ugePage
 		}
 	}
 
-	log.Log.Infof("Mutating interface %v", domainSpec.Devices.Interfaces)
+	log.Log.Infof("%d interfaces for the VM", len(domainSpec.Devices.Interfaces))
 
 	for _, vmiIface := range p.vmiSpecIface {
 
 		log.Log.Infof("Mutating interface %s", vmiIface.Name)
 
-		if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, vmiIface.Name); iface != nil {
+		if iface := lookupIfaceByAliasName(domainSpec.Devices.Interfaces, vmiIface.Name); iface != nil {
 			iface.Target.Managed = "yes"
 
 			iface.Source = &libvirtxml.DomainInterfaceSource{
@@ -137,7 +137,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 	//		iface.Source = &domainschema.
 	//	}
 	//}
-	return &domainSpecCopy, nil
+	return nil
 }
 
 func lookupIfaceByAliasName(ifaces []libvirtxml.DomainInterface, name string) *libvirtxml.DomainInterface {
