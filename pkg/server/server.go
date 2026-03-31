@@ -54,7 +54,7 @@ func (s V1alpha2Server) OnDefineDomain(_ context.Context, params *hooksV1alpha2.
 		IstioProxyInjectionEnabled: istioProxyInjectionEnabled,
 	}
 
-	ovsConfigurator, err := domain.NewOVSNetworkConfigurator(vmi.Spec.Domain.Devices.Interfaces, vmi.Spec.Networks, opts)
+	ovsConfigurator, err := domain.NewOVSNetworkConfigurator(vmi.Spec.Domain.Devices.Interfaces, vmi.Spec.Networks, *vmi.Spec.Domain.Memory, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create passt configurator: %v", err)
 	}

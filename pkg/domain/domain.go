@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
+	"regexp"
 
 	vmschema "kubevirt.io/api/core/v1"
-	"kubevirt.io/client-go/log"
 
-	"kubevirt.io/kubevirt/pkg/hooks"
 	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
 
@@ -21,6 +19,7 @@ type NetworkConfiguratorOptions struct {
 
 type OVSNetworkConfigurator struct {
 	vmiSpecIface []*vmschema.Interface
+	hugePageSize string
 	options      NetworkConfiguratorOptions
 }
 
@@ -35,19 +34,12 @@ const (
 	OVSVHostUserDirectory = "vhostuser"
 )
 
-func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.Network, opts NetworkConfiguratorOptions) (*OVSNetworkConfigurator, error) {
-	/*
-		network := vmispec.LookupPodNetwork(networks)
-		if network == nil {
-			return nil, fmt.Errorf("pod network not found: %d, %s, %+v", len(networks), networks[0].Name, networks[0].Multus)
-		}
-		iface := vmispec.LookupInterfaceByName(ifaces, network.Name)
-		if iface == nil {
-			return nil, fmt.Errorf("no interface found")
-		}
-	*/
+func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.Network, memory vmschema.Memory, opts NetworkConfiguratorOptions) (*OVSNetworkConfigurator, error) {
 
-	var newIfaces []*vmschema.Interface
+	var (
+		newIfaces []*vmschema.Interface
+		pageSize  string
+	)
 
 	for _, iface := range ifaces {
 		if iface.Binding == nil || iface.Binding != nil && iface.Binding.Name != OVSPluginName {
@@ -56,60 +48,52 @@ func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.
 		newIfaces = append(newIfaces, &iface)
 
 	}
+
+	if memory.Hugepages != nil {
+		pageSize = memory.Hugepages.PageSize
+	}
+
 	return &OVSNetworkConfigurator{
 		vmiSpecIface: newIfaces,
+		hugePageSize: pageSize,
 		options:      opts,
 	}, nil
 }
 
 func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*domainschema.DomainSpec, error) {
-	//generatedIface, err := p.generateInterface()
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to generate domain interface spec: %v", err)
-	//}
-
-	/*
-		socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory)
-
-		exists, err := exists(socketPath)
-		if err != nil {
-			log.Log.Warningf("Could not check if directory exists: %s", socketPath)
-		}
-
-		if !exists {
-			if err := os.Mkdir(socketPath, os.ModePerm); err != nil {
-				log.Log.Warningf("Could not create directory: %s", socketPath)
-			}
-		}
-	*/
+	const (
+		sharedMemoryBackingAccessMode = "shared"
+		memfdMemoryBackingSourceType  = "memfd"
+	)
 
 	domainSpecCopy := domainSpec.DeepCopy()
-	//if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, p.vmiSpecIface[0].Name); iface != nil {
 
-	filePath := filepath.Join(hooks.HookSocketsSharedDirectory, OVSVHostUserDirectory)
-	//socketPath := filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", p.vmiSpecIface.Name))
-	//	*iface = *generatedIface
-
-	exists, err := exists(filePath)
-	if err != nil {
-		log.Log.Warningf("Could not check if directory exists: %s", filePath)
+	if domainSpecCopy.MemoryBacking != nil &&
+		domainSpecCopy.MemoryBacking.Access != nil &&
+		domainSpecCopy.MemoryBacking.Access.Mode != sharedMemoryBackingAccessMode {
+		return nil, fmt.Errorf("memory backing access mode must be 'shared'; cannot override existing mode: %q",
+			domainSpec.MemoryBacking.Access.Mode)
 	}
 
-	if !exists {
-		if err := os.Mkdir(filePath, os.ModePerm); err != nil {
-			log.Log.Warningf("Could not create directory: %s", filePath)
+	if domainSpecCopy.MemoryBacking == nil {
+		domainSpecCopy.MemoryBacking = &domainschema.MemoryBacking{
+			Access: &domainschema.MemoryBackingAccess{
+				Mode: sharedMemoryBackingAccessMode,
+			},
+			Source: &domainschema.MemoryBackingSource{
+				Type: memfdMemoryBackingSourceType,
+			},
 		}
 	}
 
-	socketPath := filepath.Join(filePath, p.vmiSpecIface[0].Name)
-	os.OpenFile(socketPath, os.O_RDONLY|os.O_CREATE, 0666)
+	if p.hugePageSize != "" {
 
-	//log.Log.Infof("ovs interface is NOT added to domain spec successfully: %+v", iface)
-	//} else {
-	//	domainSpecCopy.Devices.Interfaces = append(domainSpecCopy.Devices.Interfaces, *generatedIface)
-	//}
-
-	//
+		ugePage, err := hugepageFromVMI(p.hugePageSize)
+		if err != nil {
+			return nil, err
+		}
+		domainSpecCopy.MemoryBacking.HugePages.HugePage = append(domainSpecCopy.MemoryBacking.HugePages.HugePage, *ugePage)
+	}
 
 	return domainSpecCopy, nil
 }
@@ -224,6 +208,27 @@ func (p OVSNetworkConfigurator) mutateInterface(ifaceName string) (*domainschema
 		return portsFwd
 	}
 */
+
+func hugepageFromVMI(pagesize string) (*domainschema.HugePage, error) {
+
+	var pagesizeRegex = regexp.MustCompile(`^(\d+)([A-Za-z]+)$`)
+
+	pagesizeMatch := pagesizeRegex.FindStringSubmatch(pagesize)
+	if len(pagesizeMatch) != 3 {
+		return &domainschema.HugePage{}, fmt.Errorf("invalid pagesize: %s", pagesize)
+	}
+
+	//size, err := strconv.ParseUint(pagesizeMatch[1], 10, 64)
+	//if err != nil {
+	//	return &domainschema.HugePage{}, err
+	//}
+
+	return &domainschema.HugePage{
+		//Size: uint(size),
+		Size: pagesizeMatch[1],
+		Unit: pagesizeMatch[2] + "B",
+	}, nil
+}
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {

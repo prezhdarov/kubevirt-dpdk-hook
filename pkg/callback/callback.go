@@ -21,6 +21,7 @@ func OnDefineDomain(domainXML []byte, domSpecMutator DomainSpecMutator) ([]byte,
 		// e.g: https://libvirt.org/drvqemu.html#pass-through-of-arbitrary-qemu-commands
 		XmlNS: libvirtDomainQemuSchema,
 	}
+
 	if err := xml.Unmarshal(domainXML, domainSpec); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal given domain spec: %v", err)
 	}
