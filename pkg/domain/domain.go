@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
 	vmschema "kubevirt.io/api/core/v1"
 	"libvirt.org/go/libvirtxml"
-
-	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
 
 type NetworkConfiguratorOptions struct {
@@ -101,6 +100,21 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 		domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
 	}
 
+	for _, vmiIface := range p.vmiSpecIface {
+		if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, vmiIface.Name); iface != nil {
+			iface.Target.Managed = "yes"
+
+			iface.Source = &libvirtxml.DomainInterfaceSource{
+				VHostUser: &libvirtxml.DomainChardevSource{
+					UNIX: &libvirtxml.DomainChardevSourceUNIX{
+						Path: filepath.Join(OVSSocketDir, vmiIface.Name),
+						Mode: "server",
+					},
+				},
+			}
+		}
+	}
+
 	//for _, vmiSpecIface := range p.vmiSpecIface {
 	//	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, vmiSpecIface.Name); iface != nil {
 	//		iface.Target.Managed = "yes"
@@ -110,9 +124,9 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 	return &domainSpecCopy, nil
 }
 
-func lookupIfaceByAliasName(ifaces []domainschema.Interface, name string) *domainschema.Interface {
+func lookupIfaceByAliasName(ifaces []libvirtxml.DomainInterface, name string) *libvirtxml.DomainInterface {
 	for i, iface := range ifaces {
-		if iface.Alias != nil && iface.Alias.GetName() == name {
+		if iface.Alias != nil && iface.Alias.Name == name {
 			return &ifaces[i]
 		}
 	}
