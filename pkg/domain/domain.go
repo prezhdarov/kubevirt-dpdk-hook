@@ -124,6 +124,8 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 					},
 				},
 			}
+
+			log.Log.Infof("Mutated into %s", iface)
 		}
 	}
 
