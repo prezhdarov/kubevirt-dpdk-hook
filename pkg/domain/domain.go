@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	vmschema "kubevirt.io/api/core/v1"
+	"kubevirt.io/client-go/log"
 	"libvirt.org/go/libvirtxml"
 )
 
@@ -73,6 +74,8 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 	domainSpecCopy.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: sharedMemoryBackingAccessMode}
 	domainSpecCopy.MemoryBacking.MemorySource = &libvirtxml.DomainMemorySource{Type: memfdMemoryBackingSourceType}
 
+	log.Log.Infof("Set memory access to %s and memory source to %s", sharedMemoryBackingAccessMode, memfdMemoryBackingSourceType)
+
 	//if domainSpecCopy.MemoryBacking != nil &&
 	//	domainSpecCopy.MemoryBacking.Access != nil &&
 	//	domainSpecCopy.MemoryBacking.Access.Mode != sharedMemoryBackingAccessMode {
@@ -97,10 +100,19 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 		if err != nil {
 			return nil, err
 		}
-		domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
+		if len(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages) < 1 {
+			log.Log.Infof("No hugepages configruration find, adding one with page size of %s", p.hugePageSize)
+			domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
+		} else {
+			log.Log.Infof("Existing hugepages configruration found, updating to page size of %s", p.hugePageSize)
+			domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages[0] = ugePage
+		}
 	}
 
 	for _, vmiIface := range p.vmiSpecIface {
+
+		log.Log.Infof("Mutating interface %s", vmiIface.Name)
+
 		if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, vmiIface.Name); iface != nil {
 			iface.Target.Managed = "yes"
 
