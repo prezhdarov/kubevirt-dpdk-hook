@@ -109,6 +109,8 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 		}
 	}
 
+	log.Log.Infof("Mutating interface %v", domainSpec.Devices.Interfaces)
+
 	for _, vmiIface := range p.vmiSpecIface {
 
 		log.Log.Infof("Mutating interface %s", vmiIface.Name)
