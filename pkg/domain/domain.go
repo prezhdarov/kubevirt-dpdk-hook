@@ -140,7 +140,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtx
 
 func lookupIfaceByAliasName(ifaces []libvirtxml.DomainInterface, name string) *libvirtxml.DomainInterface {
 	for i, iface := range ifaces {
-		log.Log.Infof("Verifying interface with name %s", iface.XMLName)
+		log.Log.Infof("Verifying interface with name %s", iface)
 		if iface.Alias != nil && iface.Alias.Name == name {
 			log.Log.Infof("Found interface %s", name)
 			return &ifaces[i]
