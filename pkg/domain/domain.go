@@ -6,8 +6,10 @@ import (
 	"io/fs"
 	"os"
 	"regexp"
+	"strconv"
 
 	vmschema "kubevirt.io/api/core/v1"
+	"libvirt.org/go/libvirtxml"
 
 	domainschema "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 )
@@ -60,31 +62,35 @@ func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.
 	}, nil
 }
 
-func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*domainschema.DomainSpec, error) {
+func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) (*libvirtxml.Domain, error) {
 	const (
 		sharedMemoryBackingAccessMode = "shared"
 		memfdMemoryBackingSourceType  = "memfd"
 	)
 
-	domainSpecCopy := domainSpec.DeepCopy()
+	domainSpecCopy := *domainSpec
 
-	if domainSpecCopy.MemoryBacking != nil &&
-		domainSpecCopy.MemoryBacking.Access != nil &&
-		domainSpecCopy.MemoryBacking.Access.Mode != sharedMemoryBackingAccessMode {
-		return nil, fmt.Errorf("memory backing access mode must be 'shared'; cannot override existing mode: %q",
-			domainSpec.MemoryBacking.Access.Mode)
-	}
+	// Set memory access mode to shared
+	domainSpecCopy.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: sharedMemoryBackingAccessMode}
+	domainSpecCopy.MemoryBacking.MemorySource = &libvirtxml.DomainMemorySource{Type: memfdMemoryBackingSourceType}
 
-	if domainSpecCopy.MemoryBacking == nil {
-		domainSpecCopy.MemoryBacking = &domainschema.MemoryBacking{
-			Access: &domainschema.MemoryBackingAccess{
-				Mode: sharedMemoryBackingAccessMode,
-			},
-			Source: &domainschema.MemoryBackingSource{
-				Type: memfdMemoryBackingSourceType,
-			},
-		}
-	}
+	//if domainSpecCopy.MemoryBacking != nil &&
+	//	domainSpecCopy.MemoryBacking.Access != nil &&
+	//	domainSpecCopy.MemoryBacking.Access.Mode != sharedMemoryBackingAccessMode {
+	//	return nil, fmt.Errorf("memory backing access mode must be 'shared'; cannot override existing mode: %q",
+	//		domainSpec.MemoryBacking.Access.Mode)
+	//}
+	//
+	//if domainSpecCopy.MemoryBacking == nil {
+	//	domainSpecCopy.MemoryBacking = &domainschema.MemoryBacking{
+	//		Access: &domainschema.MemoryBackingAccess{
+	//			Mode: sharedMemoryBackingAccessMode,
+	//		},
+	//		Source: &domainschema.MemoryBackingSource{
+	//			Type: memfdMemoryBackingSourceType,
+	//		},
+	//	}
+	//}
 
 	if p.hugePageSize != "" {
 
@@ -92,10 +98,16 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *domainschema.DomainSpec) (*do
 		if err != nil {
 			return nil, err
 		}
-		domainSpecCopy.MemoryBacking.HugePages.HugePage = append(domainSpecCopy.MemoryBacking.HugePages.HugePage, *ugePage)
+		domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpecCopy.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
 	}
 
-	return domainSpecCopy, nil
+	//for _, vmiSpecIface := range p.vmiSpecIface {
+	//	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, vmiSpecIface.Name); iface != nil {
+	//		iface.Target.Managed = "yes"
+	//		iface.Source = &domainschema.
+	//	}
+	//}
+	return &domainSpecCopy, nil
 }
 
 func lookupIfaceByAliasName(ifaces []domainschema.Interface, name string) *domainschema.Interface {
@@ -106,10 +118,6 @@ func lookupIfaceByAliasName(ifaces []domainschema.Interface, name string) *domai
 	}
 
 	return nil
-}
-
-func (p OVSNetworkConfigurator) mutateInterface(ifaceName string) (*domainschema.Interface, error) {
-	return nil, nil
 }
 
 /*
@@ -209,26 +217,26 @@ func (p OVSNetworkConfigurator) mutateInterface(ifaceName string) (*domainschema
 	}
 */
 
-func hugepageFromVMI(pagesize string) (*domainschema.HugePage, error) {
+func hugepageFromVMI(pagesize string) (libvirtxml.DomainMemoryHugepage, error) {
 
 	var pagesizeRegex = regexp.MustCompile(`^(\d+)([A-Za-z]+)$`)
 
 	pagesizeMatch := pagesizeRegex.FindStringSubmatch(pagesize)
 	if len(pagesizeMatch) != 3 {
-		return &domainschema.HugePage{}, fmt.Errorf("invalid pagesize: %s", pagesize)
+		return libvirtxml.DomainMemoryHugepage{}, fmt.Errorf("invalid pagesize: %s", pagesize)
 	}
 
-	//size, err := strconv.ParseUint(pagesizeMatch[1], 10, 64)
-	//if err != nil {
-	//	return &domainschema.HugePage{}, err
-	//}
+	size, err := strconv.ParseUint(pagesizeMatch[1], 10, 64)
+	if err != nil {
+		return libvirtxml.DomainMemoryHugepage{}, err
+	}
 
-	return &domainschema.HugePage{
-		//Size: uint(size),
-		Size: pagesizeMatch[1],
+	return libvirtxml.DomainMemoryHugepage{
+		Size: uint(size),
 		Unit: pagesizeMatch[2] + "B",
 	}, nil
 }
+
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
