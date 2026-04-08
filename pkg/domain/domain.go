@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -127,9 +128,16 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				},
 			}
 
-			log.Log.Infof("Mutated into %s", iface)
+			log.Log.Infof("Mutated into %s", iface.Alias.Name)
 		}
 	}
+
+	newDomainXML, err := xml.Marshal(domainSpec)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal new Domain spec: %s %+v", err, domainSpec)
+	}
+
+	log.Log.Infof("new domain xml: %s", string(newDomainXML))
 
 	//for _, vmiSpecIface := range p.vmiSpecIface {
 	//	if iface := lookupIfaceByAliasName(domainSpecCopy.Devices.Interfaces, vmiSpecIface.Name); iface != nil {
@@ -142,7 +150,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 
 func lookupIfaceByAliasName(ifaces []libvirtxml.DomainInterface, name string) *libvirtxml.DomainInterface {
 	for i, iface := range ifaces {
-		log.Log.Infof("Verifying interface with name %s", iface)
+		log.Log.Infof("Verifying interface with name %s", iface.Alias.Name)
 		if iface.Alias != nil && iface.Alias.Name == name {
 			log.Log.Infof("Found interface %s", name)
 			return &ifaces[i]
