@@ -29,7 +29,7 @@ const (
 	// PasstLogFilePath passt log file path Kubevirt consume and record
 	OVSLogFilePath = "/var/run/kubevirt/ovs.log"
 
-	OVSSocketDir = "/var/run/kubevirt/vh"
+	OVSSocketDir = "/var/run/kubevirt"
 
 	OVSVHostUserDirectory = "vhostuser"
 )
@@ -120,7 +120,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 			iface.Source = &libvirtxml.DomainInterfaceSource{
 				VHostUser: &libvirtxml.DomainChardevSource{
 					UNIX: &libvirtxml.DomainChardevSourceUNIX{
-						Path: filepath.Join(OVSSocketDir, vmiIface.Name),
+						Path: filepath.Join(OVSSocketDir, fmt.Sprintf("vh-%s.sock", vmiIface.Name)),
 						Mode: "server",
 					},
 				},
