@@ -2,10 +2,7 @@ package domain
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -152,7 +149,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 func lookupIfaceByAliasName(ifaces []libvirtxml.DomainInterface, name string) *libvirtxml.DomainInterface {
 	for i, iface := range ifaces {
 		log.Log.Infof("Verifying interface with name %s", iface.Alias.Name)
-		if iface.Alias != nil && iface.Alias.Name == name {
+		if iface.Alias != nil && iface.Alias.Name == fmt.Sprintf("ua-%s", name) {
 			log.Log.Infof("Found interface %s", name)
 			return &ifaces[i]
 		}
@@ -278,6 +275,7 @@ func hugepageFromVMI(pagesize string) (libvirtxml.DomainMemoryHugepage, error) {
 	}, nil
 }
 
+/*
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -288,3 +286,4 @@ func exists(path string) (bool, error) {
 	}
 	return false, err
 }
+*/
