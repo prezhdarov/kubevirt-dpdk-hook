@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -63,20 +64,20 @@ func NewOVSNetworkConfigurator(ifaces []vmschema.Interface, networks []vmschema.
 }
 
 func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
-	/*
-		const (
-			sharedMemoryBackingAccessMode = "shared"
-			memfdMemoryBackingSourceType  = "memfd"
-		)
 
-		//domainSpecCopy := *domainSpec
+	const (
+		sharedMemoryBackingAccessMode = "shared"
+		memfdMemoryBackingSourceType  = "memfd"
+	)
 
-		// Set memory access mode to shared
-		domainSpec.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: sharedMemoryBackingAccessMode}
-		domainSpec.MemoryBacking.MemorySource = &libvirtxml.DomainMemorySource{Type: memfdMemoryBackingSourceType}
+	//domainSpecCopy := *domainSpec
 
-		log.Log.Infof("Set memory access to %s and memory source to %s", sharedMemoryBackingAccessMode, memfdMemoryBackingSourceType)
-	*/
+	// Set memory access mode to shared
+	domainSpec.MemoryBacking.MemoryAccess = &libvirtxml.DomainMemoryAccess{Mode: sharedMemoryBackingAccessMode}
+	domainSpec.MemoryBacking.MemorySource = &libvirtxml.DomainMemorySource{Type: memfdMemoryBackingSourceType}
+
+	log.Log.Infof("Set memory access to %s and memory source to %s", sharedMemoryBackingAccessMode, memfdMemoryBackingSourceType)
+
 	//if domainSpecCopy.MemoryBacking != nil &&
 	//	domainSpecCopy.MemoryBacking.Access != nil &&
 	//	domainSpecCopy.MemoryBacking.Access.Mode != sharedMemoryBackingAccessMode {
@@ -94,44 +95,44 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 	//		},
 	//	}
 	//}
-	/*
-		if p.hugePageSize != "" {
 
-			ugePage, err := hugepageFromVMI(p.hugePageSize)
-			if err != nil {
-				return err
-			}
-			if len(domainSpec.MemoryBacking.MemoryHugePages.Hugepages) < 1 {
-				log.Log.Infof("No hugepages configruration find, adding one with page size of %s", p.hugePageSize)
-				domainSpec.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpec.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
-			} else {
-				log.Log.Infof("Existing hugepages configruration found, updating to page size of %s", p.hugePageSize)
-				domainSpec.MemoryBacking.MemoryHugePages.Hugepages[0] = ugePage
-			}
+	if p.hugePageSize != "" {
+
+		ugePage, err := hugepageFromVMI(p.hugePageSize)
+		if err != nil {
+			return err
 		}
+		if len(domainSpec.MemoryBacking.MemoryHugePages.Hugepages) < 1 {
+			log.Log.Infof("No hugepages configruration find, adding one with page size of %s", p.hugePageSize)
+			domainSpec.MemoryBacking.MemoryHugePages.Hugepages = append(domainSpec.MemoryBacking.MemoryHugePages.Hugepages, ugePage)
+		} else {
+			log.Log.Infof("Existing hugepages configruration found, updating to page size of %s", p.hugePageSize)
+			domainSpec.MemoryBacking.MemoryHugePages.Hugepages[0] = ugePage
+		}
+	}
 
-		log.Log.Infof("%d interfaces for the VM", len(domainSpec.Devices.Interfaces))
+	log.Log.Infof("%d interfaces for the VM", len(domainSpec.Devices.Interfaces))
 
-		for _, vmiIface := range p.vmiSpecIface {
+	for _, vmiIface := range p.vmiSpecIface {
 
-			log.Log.Infof("Mutating interface %s", vmiIface.Name)
+		log.Log.Infof("Mutating interface %s", vmiIface.Name)
 
-			if iface := lookupIfaceByAliasName(domainSpec.Devices.Interfaces, vmiIface.Name); iface != nil {
-				iface.Target.Managed = "yes"
+		if iface := lookupIfaceByAliasName(domainSpec.Devices.Interfaces, vmiIface.Name); iface != nil {
+			iface.Target.Managed = "yes"
 
-				iface.Source = &libvirtxml.DomainInterfaceSource{
-					VHostUser: &libvirtxml.DomainChardevSource{
-						UNIX: &libvirtxml.DomainChardevSourceUNIX{
-							Path: filepath.Join(OVSSocketDir, vmiIface.Name),
-							Mode: "server",
-						},
+			iface.Source = &libvirtxml.DomainInterfaceSource{
+				VHostUser: &libvirtxml.DomainChardevSource{
+					UNIX: &libvirtxml.DomainChardevSourceUNIX{
+						Path: filepath.Join(OVSSocketDir, vmiIface.Name),
+						Mode: "server",
 					},
-				}
-
-				log.Log.Infof("Mutated into %s", iface.Alias.Name)
+				},
 			}
+
+			log.Log.Infof("Mutated into %s", iface.Alias.Name)
 		}
-	*/
+	}
+
 	newDomainXML, err := xml.Marshal(domainSpec)
 	if err != nil {
 		return fmt.Errorf("Failed to marshal new Domain spec: %s %+v", err, domainSpec)
