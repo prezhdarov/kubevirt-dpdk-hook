@@ -8,7 +8,7 @@ import (
 )
 
 // TODO: move to Kubevirt domain API package
-const libvirtDomainQemuSchema = "http://libvirt.org/schemas/domain/qemu/1.0"
+//const libvirtDomainQemuSchema = "http://libvirt.org/schemas/domain/qemu/1.0"
 
 type DomainSpecMutator interface {
 	Mutate(*libvirtxml.Domain) error
