@@ -121,7 +121,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				VHostUser: &libvirtxml.DomainChardevSource{
 					UNIX: &libvirtxml.DomainChardevSourceUNIX{
 						Path: filepath.Join(OVSSocketDir, fmt.Sprintf("vh-%s", vmiIface.Name)),
-						Mode: "client",
+						Mode: "server",
 					},
 				},
 			}
