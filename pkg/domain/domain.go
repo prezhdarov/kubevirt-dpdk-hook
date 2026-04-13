@@ -131,6 +131,16 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				Queues:      2,
 				RXQueueSize: 1024,
 				TXQueueSize: 1024,
+				Guest: &libvirtxml.DomainInterfaceDriverGuest{
+					CSum: "off",
+					TSO4: "on",
+					TSO6: "on",
+				},
+				Host: &libvirtxml.DomainInterfaceDriverHost{
+					GSO:  "on",
+					TSO4: "on",
+					TSO6: "on",
+				},
 			}
 
 			iface.Model.Type = "virtio"
