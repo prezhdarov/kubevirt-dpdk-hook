@@ -133,6 +133,8 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				TXQueueSize: 1024,
 			}
 
+			iface.Model.Type = "virtio"
+
 			log.Log.Infof("Mutated into %s", iface.Alias.Name)
 		}
 	}
