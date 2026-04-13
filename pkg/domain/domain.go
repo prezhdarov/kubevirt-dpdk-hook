@@ -135,12 +135,14 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 					CSum: "on",
 					TSO4: "on",
 					TSO6: "on",
+					ECN:  "on",
 				},
 				Host: &libvirtxml.DomainInterfaceDriverHost{
 					CSum:     "on",
 					GSO:      "on",
 					TSO4:     "on",
 					TSO6:     "on",
+					ECN:      "on",
 					MrgRXBuf: "on",
 				},
 			}
