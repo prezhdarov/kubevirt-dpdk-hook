@@ -132,7 +132,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				RXQueueSize: 1024,
 				TXQueueSize: 1024,
 				Guest: &libvirtxml.DomainInterfaceDriverGuest{
-					CSum: "off",
+					CSum: "on",
 					TSO4: "on",
 					TSO6: "on",
 				},
