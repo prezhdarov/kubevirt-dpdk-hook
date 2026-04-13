@@ -126,6 +126,13 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				},
 			}
 
+			iface.Driver = &libvirtxml.DomainInterfaceDriver{
+				Name:        "vhost",
+				Queues:      2,
+				RXQueueSize: 1024,
+				TXQueueSize: 1024,
+			}
+
 			log.Log.Infof("Mutated into %s", iface.Alias.Name)
 		}
 	}
