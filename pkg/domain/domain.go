@@ -147,7 +147,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 				},
 			}
 
-			iface.Model.Type = "virtio"
+			//iface.Model.Type = "virtio"
 
 			iface.MTU.Size = 9000
 
