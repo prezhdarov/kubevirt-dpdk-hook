@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	vmschema "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
@@ -120,7 +121,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 			iface.Source = &libvirtxml.DomainInterfaceSource{
 				VHostUser: &libvirtxml.DomainChardevSource{
 					UNIX: &libvirtxml.DomainChardevSourceUNIX{
-						Path: filepath.Join(OVSSocketDir, fmt.Sprintf("vh-%s", vmiIface.Name)),
+						Path: filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", strings.TrimPrefix(iface.Target.Dev, "tap"))),
 						Mode: "server",
 					},
 				},
@@ -149,7 +150,7 @@ func (p OVSNetworkConfigurator) Mutate(domainSpec *libvirtxml.Domain) error {
 
 			//iface.Model.Type = "virtio"
 
-			iface.MTU.Size = 9000
+			//iface.MTU.Size = 9000
 
 			log.Log.Infof("Mutated into %s", iface.Alias.Name)
 		}
