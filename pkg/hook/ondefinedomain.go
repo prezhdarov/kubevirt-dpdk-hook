@@ -30,12 +30,17 @@ func (s v1Alpha2Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha
 	}
 
 	if havePCIControllers(domainSpec.Devices.Controllers) == false && domainSpec.Devices.Emulator == "" {
+		log.Log.Infof("Seems hook is running with preliminary domain spec (emulator: %s), skipping", domainSpec.Devices.Emulator)
 		return &hooksV1alpha2.OnDefineDomainResult{
 			DomainXML: params.GetDomainXML(),
 		}, nil
 	}
 
 	if err := configMemory(vmiSpec.Spec.Domain.Memory, domainSpec.MemoryBacking); err != nil {
+		return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
+	}
+
+	if err := configNetwork(vmiSpec.Spec.Domain.Devices.Interfaces, domainSpec.Devices.Interfaces); err != nil {
 		return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
 	}
 
