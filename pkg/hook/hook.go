@@ -21,9 +21,6 @@ const (
 	onShutdownMessage             = "Hook's Shutdown callback method has been called"
 
 	hookSocket = "dpdk.sock"
-
-	onDefineDomainBin  = "onDefineDomain"
-	preCloudInitIsoBin = "preCloudInitIso"
 )
 
 type v1Alpha2Server struct{}
