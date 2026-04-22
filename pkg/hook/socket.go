@@ -1,5 +1,6 @@
 package hook
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -29,3 +30,4 @@ func getSocketPath() (string, error) {
 
 	return "", fmt.Errorf("Failed generate socket path")
 }
+*/

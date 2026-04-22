@@ -1,12 +1,29 @@
 package hook
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
 
-	virtv1 "kubevirt.io/api/core/v1"
-	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
+	hooksV1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
 )
+
+func (s v1Alpha2Server) PreCloudInitIso(_ context.Context, params *hooksV1alpha2.PreCloudInitIsoParams) (*hooksV1alpha2.PreCloudInitIsoResult, error) {
+	return &hooksV1alpha2.PreCloudInitIsoResult{
+		CloudInitData: params.GetCloudInitData(),
+	}, nil
+}
+
+/*
+func (s v1Alpha2Server) PreCloudInitIso(_ context.Context, params *hooksV1alpha2.PreCloudInitIsoParams) (*hooksV1alpha2.PreCloudInitIsoResult, error) {
+	log.Log.Info(preCloudInitIsoLoggingMessage)
+	cloudInitData, err := runPreCloudInitIso(params.GetVmi(), params.GetCloudInitData())
+	if err != nil {
+		log.Log.Reason(err).Error("Failed ProCloudInitIso")
+		return nil, err
+	}
+	return &hooksV1alpha2.PreCloudInitIsoResult{
+		CloudInitData: cloudInitData,
+	}, nil
+}
 
 func runPreCloudInitIso(vmiJSON []byte, cloudInitDataJSON []byte) ([]byte, error) {
 	// Check binary exists
@@ -39,3 +56,4 @@ func runPreCloudInitIso(vmiJSON []byte, cloudInitDataJSON []byte) ([]byte, error
 	//}
 	return cloudInitDataJSON, err
 }
+*/

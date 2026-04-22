@@ -23,12 +23,12 @@ func (s infoServer) Info(ctx context.Context, params *hooksInfo.InfoParams) (*ho
 
 	// Shutdown fixes proper termination of Sidecars. It isn't related to
 	// user's binaries nor scripts.
-	if s.Version != "v1alpha1" && s.Version != "v1alpha2" {
-		hookPoints = append(hookPoints, &hooksInfo.HookPoint{
-			Name:     hooksInfo.ShutdownHookPointName,
-			Priority: 0,
-		})
-	}
+	//if s.Version != "v1alpha1" && s.Version != "v1alpha2" {
+	//	hookPoints = append(hookPoints, &hooksInfo.HookPoint{
+	//		Name:     hooksInfo.ShutdownHookPointName,
+	//		Priority: 0,
+	//	})
+	//}
 
 	for hookPointName, binName := range supportedHookPoints {
 		if _, err := exec.LookPath(binName); err != nil {
@@ -45,10 +45,28 @@ func (s infoServer) Info(ctx context.Context, params *hooksInfo.InfoParams) (*ho
 	}
 
 	return &hooksInfo.InfoResult{
-		Name: "shim",
+		Name: "dpdk-hook",
 		Versions: []string{
 			s.Version,
 		},
 		HookPoints: hookPoints,
 	}, nil
 }
+
+/*
+func (s infoServer) Info(_ context.Context, _ *hooksInfo.InfoParams) (*hooksInfo.InfoResult, error) {
+	log.Log.Info("Info method has been called")
+	return &hooksInfo.InfoResult{
+		Name: "dpdk-hook",
+		Versions: []string{
+			s.Version,
+		},
+		HookPoints: []*hooksInfo.HookPoint{
+			{
+				Name:     hooksInfo.OnDefineDomainHookPointName,
+				Priority: 0,
+			},
+		},
+	}, nil
+}
+*/
