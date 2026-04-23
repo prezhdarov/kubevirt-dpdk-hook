@@ -4,7 +4,6 @@ go 1.26
 
 require (
 	google.golang.org/grpc v1.79.2
-	k8s.io/apimachinery v0.33.5
 	kubevirt.io/api v1.7.1
 	kubevirt.io/client-go v1.7.1
 	kubevirt.io/kubevirt v1.7.1
@@ -33,6 +32,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.33.5 // indirect
 	k8s.io/apiextensions-apiserver v0.33.5 // indirect
+	k8s.io/apimachinery v0.33.5 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect
 	kubevirt.io/containerized-data-importer-api v1.63.1 // indirect

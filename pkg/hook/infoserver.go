@@ -27,21 +27,3 @@ func (s infoServer) Info(ctx context.Context, params *hooksInfo.InfoParams) (*ho
 		},
 	}, nil
 }
-
-/*
-func (s infoServer) Info(_ context.Context, _ *hooksInfo.InfoParams) (*hooksInfo.InfoResult, error) {
-	log.Log.Info("Info method has been called")
-	return &hooksInfo.InfoResult{
-		Name: "dpdk-hook",
-		Versions: []string{
-			s.Version,
-		},
-		HookPoints: []*hooksInfo.HookPoint{
-			{
-				Name:     hooksInfo.OnDefineDomainHookPointName,
-				Priority: 0,
-			},
-		},
-	}, nil
-}
-*/
