@@ -28,22 +28,22 @@ func (s v1Alpha2Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha
 	if err := xml.Unmarshal(params.GetDomainXML(), &domainSpec); err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal given Domain spec: %s %s", err, string(params.GetDomainXML()))
 	}
-	/*
-		if havePCIControllers(domainSpec.Devices.Controllers) == false && domainSpec.Devices.Emulator == "" {
-			log.Log.Infof("Seems hook is running with preliminary domain spec (emulator: %s), skipping", domainSpec.Devices.Emulator)
-			return &hooksV1alpha2.OnDefineDomainResult{
-				DomainXML: params.GetDomainXML(),
-			}, nil
-		}
 
-		if err := configMemory(vmiSpec.Spec.Domain.Memory, domainSpec.MemoryBacking); err != nil {
-			return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
-		}
+	if havePCIControllers(domainSpec.Devices.Controllers) == false && domainSpec.Devices.Emulator == "" {
+		log.Log.Infof("Seems hook is running with preliminary domain spec (emulator: %s), skipping", domainSpec.Devices.Emulator)
+		return &hooksV1alpha2.OnDefineDomainResult{
+			DomainXML: params.GetDomainXML(),
+		}, nil
+	}
 
-		if err := configNetwork(vmiSpec.Spec.Domain.Devices.Interfaces, domainSpec.Devices.Interfaces); err != nil {
-			return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
-		}
-	*/
+	if err := configMemory(vmiSpec.Spec.Domain.Memory, domainSpec.MemoryBacking); err != nil {
+		return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
+	}
+
+	if err := configNetwork(vmiSpec.Spec.Domain.Devices.Interfaces, domainSpec.Devices.Interfaces); err != nil {
+		return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
+	}
+
 	// We don't care about the first version of the XML, do we?
 	newDomainXML, err := xml.Marshal(domainSpec)
 	if err != nil {
