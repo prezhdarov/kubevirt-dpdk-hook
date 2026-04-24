@@ -1,6 +1,7 @@
 package netbind
 
 import (
+	"context"
 	"net"
 	"os"
 	"os/signal"
@@ -11,7 +12,7 @@ import (
 	"kubevirt.io/client-go/log"
 	"kubevirt.io/kubevirt/pkg/hooks"
 	hooksInfo "kubevirt.io/kubevirt/pkg/hooks/info"
-	hooksV1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
+	hooksV1alpha3 "kubevirt.io/kubevirt/pkg/hooks/v1alpha3"
 )
 
 const (
@@ -22,7 +23,9 @@ const (
 	hookSocket = "ovs.sock"
 )
 
-type v1Alpha2Server struct{}
+type v1Alpha3Server struct {
+	done chan struct{}
+}
 
 func NetBind(version string) {
 
@@ -39,7 +42,7 @@ func NetBind(version string) {
 
 	server := grpc.NewServer([]grpc.ServerOption{}...)
 	hooksInfo.RegisterInfoServer(server, infoServer{Version: version})
-	hooksV1alpha2.RegisterCallbacksServer(server, v1Alpha2Server{})
+	hooksV1alpha3.RegisterCallbacksServer(server, v1Alpha3Server{})
 
 	// Handle signals to properly shutdown process
 	signalStopChan := make(chan os.Signal, 1)
@@ -68,4 +71,10 @@ func NetBind(version string) {
 		server.GracefulStop()
 	}
 
+}
+
+func (s v1Alpha3Server) Shutdown(_ context.Context, _ *hooksV1alpha3.ShutdownParams) (*hooksV1alpha3.ShutdownResult, error) {
+	log.Log.Info(onShutdownMessage)
+	s.done <- struct{}{}
+	return &hooksV1alpha3.ShutdownResult{}, nil
 }
