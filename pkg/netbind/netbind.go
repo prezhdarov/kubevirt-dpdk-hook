@@ -42,7 +42,9 @@ func NetBind(version string) {
 
 	server := grpc.NewServer([]grpc.ServerOption{}...)
 	hooksInfo.RegisterInfoServer(server, infoServer{Version: version})
-	hooksV1alpha3.RegisterCallbacksServer(server, v1Alpha3Server{})
+
+	shutdownChan := make(chan struct{})
+	hooksV1alpha3.RegisterCallbacksServer(server, v1Alpha3Server{done: shutdownChan})
 
 	// Handle signals to properly shutdown process
 	signalStopChan := make(chan os.Signal, 1)
@@ -64,7 +66,8 @@ func NetBind(version string) {
 		log.Log.Infof("dpdk-hook received signal: %s", s.String())
 	case err = <-errChan:
 		log.Log.Reason(err).Error("Failed to run grpc server")
-
+	case <-shutdownChan:
+		log.Log.Info("Exiting")
 	}
 
 	if err == nil {
