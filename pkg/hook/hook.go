@@ -65,13 +65,11 @@ func Hook(version string) {
 	select {
 	case s := <-signalStopChan:
 		log.Log.Infof("dpdk-hook received signal: %s", s.String())
+		server.GracefulStop()
 	case err = <-errChan:
 		log.Log.Reason(err).Error("Failed to run grpc server")
 	case <-shutdownChan:
 		log.Log.Info("Exiting")
-	}
-
-	if err == nil {
 		server.GracefulStop()
 	}
 

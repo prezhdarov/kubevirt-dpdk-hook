@@ -24,6 +24,10 @@ func (s infoServer) Info(ctx context.Context, params *hooksInfo.InfoParams) (*ho
 				Name:     hooksInfo.OnDefineDomainHookPointName,
 				Priority: 0,
 			},
+			{
+				Name:     hooksInfo.ShutdownHookPointName,
+				Priority: 0,
+			},
 		},
 	}, nil
 }
