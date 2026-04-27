@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"context"
 	"net"
 	"os"
 	"os/signal"
@@ -12,7 +13,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/hooks"
 	hooksInfo "kubevirt.io/kubevirt/pkg/hooks/info"
-	hooksV1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
+	hooksV1alpha3 "kubevirt.io/kubevirt/pkg/hooks/v1alpha3"
 )
 
 const (
@@ -23,11 +24,13 @@ const (
 	hookSocket = "dpdk.sock"
 )
 
-type v1Alpha2Server struct{}
+type v1Alpha3Server struct {
+	done chan struct{}
+}
 
 func Hook(version string) {
 
-	log.InitializeLogging("dpdk-hook")
+	log.InitializeLogging("ovs")
 
 	socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, hookSocket)
 	socket, err := net.Listen("unix", socketPath)
@@ -40,7 +43,9 @@ func Hook(version string) {
 
 	server := grpc.NewServer([]grpc.ServerOption{}...)
 	hooksInfo.RegisterInfoServer(server, infoServer{Version: version})
-	hooksV1alpha2.RegisterCallbacksServer(server, v1Alpha2Server{})
+
+	shutdownChan := make(chan struct{})
+	hooksV1alpha3.RegisterCallbacksServer(server, v1Alpha3Server{done: shutdownChan})
 
 	// Handle signals to properly shutdown process
 	signalStopChan := make(chan os.Signal, 1)
@@ -62,11 +67,18 @@ func Hook(version string) {
 		log.Log.Infof("dpdk-hook received signal: %s", s.String())
 	case err = <-errChan:
 		log.Log.Reason(err).Error("Failed to run grpc server")
-
+	case <-shutdownChan:
+		log.Log.Info("Exiting")
 	}
 
 	if err == nil {
 		server.GracefulStop()
 	}
 
+}
+
+func (s v1Alpha3Server) Shutdown(_ context.Context, _ *hooksV1alpha3.ShutdownParams) (*hooksV1alpha3.ShutdownResult, error) {
+	log.Log.Info(onShutdownMessage)
+	s.done <- struct{}{}
+	return &hooksV1alpha3.ShutdownResult{}, nil
 }

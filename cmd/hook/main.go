@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	hook.Hook("v1alpha2")
+	hook.Hook("v1alpha3")
 }

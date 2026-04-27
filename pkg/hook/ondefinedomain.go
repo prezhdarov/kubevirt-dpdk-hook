@@ -8,7 +8,7 @@ import (
 
 	virtv1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
-	hooksV1alpha2 "kubevirt.io/kubevirt/pkg/hooks/v1alpha2"
+	hooksV1alpha3 "kubevirt.io/kubevirt/pkg/hooks/v1alpha3"
 	"libvirt.org/go/libvirtxml"
 )
 
@@ -16,7 +16,7 @@ const (
 	OVSSocketDir = "/var/run/kubevirt"
 )
 
-func (s v1Alpha2Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha2.OnDefineDomainParams) (*hooksV1alpha2.OnDefineDomainResult, error) {
+func (s v1Alpha3Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha3.OnDefineDomainParams) (*hooksV1alpha3.OnDefineDomainResult, error) {
 	log.Log.Info(onDefineDomainLoggingMessage)
 
 	vmiSpec := virtv1.VirtualMachineInstance{}
@@ -31,7 +31,7 @@ func (s v1Alpha2Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha
 
 	if havePCIControllers(domainSpec.Devices.Controllers) == false && domainSpec.Devices.Emulator == "" {
 		log.Log.Infof("Seems hook is running with preliminary domain spec (emulator: %s), skipping", domainSpec.Devices.Emulator)
-		return &hooksV1alpha2.OnDefineDomainResult{
+		return &hooksV1alpha3.OnDefineDomainResult{
 			DomainXML: params.GetDomainXML(),
 		}, nil
 	}
@@ -50,7 +50,7 @@ func (s v1Alpha2Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha
 		return nil, fmt.Errorf("Failed to marshal new Domain spec: %s %+v", err, domainSpec)
 	}
 
-	return &hooksV1alpha2.OnDefineDomainResult{
+	return &hooksV1alpha3.OnDefineDomainResult{
 		DomainXML: newDomainXML,
 	}, nil
 }
