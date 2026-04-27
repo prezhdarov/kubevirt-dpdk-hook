@@ -29,6 +29,10 @@ func configMemory(vmiMemory *virtv1.Memory, domainMemoryBacking *libvirtxml.Doma
 			return err
 		}
 
+		if domainMemoryBacking.MemoryHugePages == nil {
+			domainMemoryBacking.MemoryHugePages = &libvirtxml.DomainMemoryHugepages{}
+		}
+
 		if len(domainMemoryBacking.MemoryHugePages.Hugepages) < 1 {
 			log.Log.Infof("No hugepages configruration find, adding one with page size of %s", vmiMemory.Hugepages.PageSize)
 			domainMemoryBacking.MemoryHugePages.Hugepages = append(domainMemoryBacking.MemoryHugePages.Hugepages, ugePage)

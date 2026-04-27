@@ -60,7 +60,6 @@ func configNetwork(interfaces []vmschema.Interface, domainInterfaces []libvirtxm
 
 func lookupIfaceByAliasName(ifaces []libvirtxml.DomainInterface, name string) *libvirtxml.DomainInterface {
 	for i, iface := range ifaces {
-		log.Log.Infof("Verifying interface with name %s", iface.Alias.Name)
 		if iface.Alias != nil && iface.Alias.Name == fmt.Sprintf("ua-%s", name) {
 			log.Log.Infof("Found interface %s", name)
 			return &ifaces[i]

@@ -35,7 +35,7 @@ func Hook(version string) {
 	socketPath := filepath.Join(hooks.HookSocketsSharedDirectory, hookSocket)
 	socket, err := net.Listen("unix", socketPath)
 	if err != nil {
-		log.Log.Reason(err).Errorf("Failed to initialized socket on path: %s", socket)
+		log.Log.Reason(err).Errorf("Failed to initialized socket on path: %s", socketPath)
 		log.Log.Error("Check whether given directory exists and socket name is not already taken by other file")
 		os.Exit(1)
 	}
@@ -44,12 +44,12 @@ func Hook(version string) {
 	server := grpc.NewServer([]grpc.ServerOption{}...)
 	hooksInfo.RegisterInfoServer(server, infoServer{Version: version})
 
-	shutdownChan := make(chan struct{})
+	shutdownChan := make(chan struct{}, 1)
 	hooksV1alpha3.RegisterCallbacksServer(server, v1Alpha3Server{done: shutdownChan})
 
 	// Handle signals to properly shutdown process
 	signalStopChan := make(chan os.Signal, 1)
-	signal.Notify(signalStopChan, os.Interrupt,
+	signal.Notify(signalStopChan,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
