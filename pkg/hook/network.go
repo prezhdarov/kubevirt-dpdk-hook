@@ -28,7 +28,7 @@ func configNetwork(interfaces []vmschema.Interface, domainInterfaces []libvirtxm
 
 			iface.Driver = &libvirtxml.DomainInterfaceDriver{
 				Name:        "vhost",
-				Queues:      2,
+				Queues:      4,
 				RXQueueSize: 1024,
 				TXQueueSize: 1024,
 				Guest: &libvirtxml.DomainInterfaceDriverGuest{
