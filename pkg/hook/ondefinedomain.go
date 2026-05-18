@@ -40,7 +40,8 @@ func (s v1Alpha3Server) OnDefineDomain(ctx context.Context, params *hooksV1alpha
 		return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
 	}
 
-	if err := configNetwork(vmiSpec.Spec.Domain.Devices.Interfaces, domainSpec.Devices.Interfaces); err != nil {
+	dpdkDriverSettings := getDPDKDriverSettings(vmiSpec.Annotations)
+	if err := configNetwork(vmiSpec.Spec.Domain.Devices.Interfaces, domainSpec.Devices.Interfaces, dpdkDriverSettings); err != nil {
 		return nil, fmt.Errorf("Failed to configure memory backing with hugepages and shared access: %s", err)
 	}
 
