@@ -21,10 +21,12 @@ func configNetwork(interfaces []vmschema.Interface, domainInterfaces []libvirtxm
 			iface.Target.Managed = "yes"
 
 			iface.Source = &libvirtxml.DomainInterfaceSource{
-				VHostUser: &libvirtxml.DomainChardevSource{
-					UNIX: &libvirtxml.DomainChardevSourceUNIX{
-						Path: filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", strings.TrimPrefix(iface.Target.Dev, "tap"))),
-						Mode: "server",
+				VHostUser: &libvirtxml.DomainInterfaceSourceVHostUser{
+					Chardev: &libvirtxml.DomainChardevSource{
+						UNIX: &libvirtxml.DomainChardevSourceUNIX{
+							Path: filepath.Join(OVSSocketDir, fmt.Sprintf("%s.sock", strings.TrimPrefix(iface.Target.Dev, "tap"))),
+							Mode: "server",
+						},
 					},
 				},
 			}
