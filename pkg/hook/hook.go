@@ -39,40 +39,50 @@ func Hook(version string) {
 		log.Log.Error("Check whether given directory exists and socket name is not already taken by other file")
 		os.Exit(1)
 	}
-	defer os.Remove(socketPath)
+	defer func() {
+		if err := os.Remove(socketPath); err != nil {
+			log.Log.Reason(err).Errorf("Failed to remove socket %s", socketPath)
+		}
+	}()
 
 	server := grpc.NewServer([]grpc.ServerOption{}...)
 	hooksInfo.RegisterInfoServer(server, infoServer{Version: version})
 
-	shutdownChan := make(chan struct{}, 1)
+	shutdownChan := make(chan struct{})
+
 	hooksV1alpha3.RegisterCallbacksServer(server, v1Alpha3Server{done: shutdownChan})
 
-	// Handle signals to properly shutdown process
+	Serve(server, socket, shutdownChan)
+}
+
+func Serve(server *grpc.Server, socket net.Listener, shutdownChan <-chan struct{}) {
+	errChan := make(chan error)
+	go func() {
+		errChan <- server.Serve(socket)
+	}()
+	waitForShutdown(server, errChan, shutdownChan)
+}
+
+func waitForShutdown(server *grpc.Server, errChan <-chan error, shutdownChan <-chan struct{}) {
 	signalStopChan := make(chan os.Signal, 1)
-	signal.Notify(signalStopChan,
+	signal.Notify(signalStopChan, os.Interrupt,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 	)
-
-	log.Log.Infof("shim is now exposing its services on socket %s", socketPath)
-	errChan := make(chan error)
-	go func() {
-		errChan <- server.Serve(socket)
-	}()
-
+	var err error
 	select {
 	case s := <-signalStopChan:
-		log.Log.Infof("dpdk-hook received signal: %s", s.String())
-		server.GracefulStop()
+		log.Log.Infof("received signal: %s", s.String())
 	case err = <-errChan:
-		log.Log.Reason(err).Error("Failed to run grpc server")
+		log.Log.Reason(err).Error("grpc server failed")
 	case <-shutdownChan:
-		log.Log.Info("Exiting")
+		log.Log.Info("received shutdown, exiting")
+	}
+	if err == nil {
 		server.GracefulStop()
 	}
-
 }
 
 func (s v1Alpha3Server) Shutdown(_ context.Context, _ *hooksV1alpha3.ShutdownParams) (*hooksV1alpha3.ShutdownResult, error) {
